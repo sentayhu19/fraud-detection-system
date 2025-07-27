@@ -271,12 +271,32 @@ def prepare_features_for_modeling(df: pd.DataFrame, target_col: str = 'class') -
         le = LabelEncoder()
         for col in categorical_cols:
             X[col] = le.fit_transform(X[col].astype(str))
+
+    # Convert datetime columns to numeric (Unix timestamp seconds)
+    datetime_cols = X.select_dtypes(include=['datetime64[ns]', 'datetimetz']).columns
+    if len(datetime_cols) > 0:
+        print(f"Converting datetime columns to numeric: {list(datetime_cols)}")
+        for col in datetime_cols:
+            X[col] = X[col].view('int64') // 10**9  # seconds since epoch
     
+    # Convert boolean columns to integers
+    bool_cols = X.select_dtypes(include=['bool']).columns
+    if len(bool_cols) > 0:
+        for col in bool_cols:
+            X[col] = X[col].astype(int)
+
     # Handle infinite values
     X = X.replace([np.inf, -np.inf], np.nan)
-    
-    # Fill any remaining NaN values
-    X = X.fillna(X.median())
+
+    # Impute any remaining NaNs (median for numeric)
+    from sklearn.impute import SimpleImputer
+    imp = SimpleImputer(strategy='median')
+    X = pd.DataFrame(imp.fit_transform(X), columns=X.columns, index=X.index)
+
+    # If any NaNs remain (e.g., columns that were all NaN), replace with 0
+    if X.isna().any().any():
+        X = X.fillna(0)
+        print("Warning: some columns had all-NaN values; filled remaining NaNs with 0.")
     
     print(f"Final feature matrix shape: {X.shape}")
     print(f"Target variable shape: {y.shape}")
