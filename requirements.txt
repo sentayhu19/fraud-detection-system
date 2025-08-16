@@ -26,6 +26,15 @@ pytest-benchmark
 great-expectations
 deepdiff
 
+# Dashboard dependencies
+streamlit
+plotly
+folium
+streamlit-folium
+lime
+altair
+pydeck
+
 # Development dependencies
 black
 flake8
